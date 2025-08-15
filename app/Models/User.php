@@ -65,4 +65,10 @@ class User extends Authenticatable
             'polsek_id'
         );
     }
+
+    public function userProfile()
+{
+    return $this->hasOne(UserProfile::class, 'user_id');
+}
+
 }

@@ -1,157 +1,216 @@
 @extends('layout')
 
+@section('title', 'Data Distribusi')
+
 @section('content')
-<div class="container mt-4">
-    <h2 class="mb-4">Data Penjualan</h2>
+<div class="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8 scrollbar-hide">
 
-    <!-- Form filter -->
-     <div class="col-md-4">
-            <label for="start_date" class="form-label">Dari Tanggal:</label>
-            <input type="date" name="start_date" id="start_date" class="form-control" value="{{ request('start_date') }}">
+    {{-- Statistik --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-green-100 rounded-xl shadow-md p-6 flex items-center justify-between">
+            <div>
+                <h4 class="text-sm font-medium text-gray-600">Total Distribusi</h4>
+                <p class="mt-2 text-2xl font-bold text-gray-800">
+                    {{ $totalDistribusi ?? 0 }} Kg
+                </p>
+            </div>
+            <div class="text-green-600 text-4xl">
+                <i class="fas fa-box"></i>
+            </div>
         </div>
-        <div class="col-md-4">
-            <label for="end_date" class="form-label">Sampai Tanggal:</label>
-            <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date') }}">
-        </div>
+    </div>
 
+    <div class="bg-white rounded-xl shadow-md p-6">
 
-    <form method="GET" action="{{ route('superadmin.penjualan.filter') }}" class="row g-3 mb-4">
-        <div class="col-md-4">
-            <label for="polres_id" class="form-label">Polres:</label>
-            <select name="polres_id" id="polres_id" class="form-select">
-                <option value="">-- Pilih Polres --</option>
-                @foreach($polresList as $polres)
-                    <option value="{{ $polres->id }}" {{ request('polres_id') == $polres->id ? 'selected' : '' }}>{{ $polres->nama ?? $polres->name }}</option>
+        {{-- Dropdown pilih filter --}}
+        <div class="mb-4 relative">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Kolom & Filter</label>
+            <button type="button" id="dropdownButton" class="w-full text-left px-3 py-2 border rounded-lg focus:outline-none flex justify-between items-center bg-white">
+                Pilih Kolom
+                <span id="dropdownIcon">▼</span>
+            </button>
+            <div id="dropdownMenu" class="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg hidden">
+                @php
+                    $allFilters = ['tanggal','nama','pangkat','jabatan','polres','polsek','jumlah_beras'];
+                    $selectedFilters = request('filters', []);
+                @endphp
+                @foreach($allFilters as $f)
+                    <div class="px-3 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center filter-item" data-value="{{ $f }}">
+                        <span>{{ ucfirst(str_replace('_',' ',$f)) }}</span>
+                        <span class="filter-symbol">{{ in_array($f,$selectedFilters) ? '✔' : '✖' }}</span>
+                    </div>
                 @endforeach
-            </select>
+            </div>
         </div>
 
-        <div class="col-md-4">
-            <label for="polsek_id" class="form-label">Polsek:</label>
-            <select name="polsek_id" id="polsek_id" class="form-select">
-                <option value="">-- Pilih Polsek --</option>
-                @foreach($polsekList as $polsek)
-                    <option value="{{ $polsek->id }}" {{ request('polsek_id') == $polsek->id ? 'selected' : '' }}>{{ $polsek->nama ?? $polsek->name }}</option>
-                @endforeach
-            </select>
-        </div>
+        {{-- Form filter dinamis --}}
+        <form method="GET" id="filter-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 {{ count($selectedFilters) ? '' : 'hidden' }}">
+            <input type="hidden" name="filters[]" id="filters-hidden" value="{{ implode(',', $selectedFilters) }}">
+            <div id="dynamic-input"></div>
 
-        <div class="col-md-4">
-            <label for="user_id" class="form-label">User:</label>
-            <select name="user_id" id="user_id" class="form-select">
-                <option value="">-- Pilih User --</option>
-                @foreach($userList ?? [] as $user)
-                    <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name ?? $user->nama }} / {{ $user->nrp ?? '-' }}</option>
-                @endforeach
-            </select>
-        </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition">
+                    Search
+                </button>
+            </div>
 
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary">Filter</button>
-        </div>
-    </form>
+            <div class="flex items-end">
+                <button type="button" id="resetButton" class="w-full px-4 py-2 bg-white border border-green-600 text-green-600 rounded-lg shadow hover:bg-green-50 transition text-center">
+                    Reset
+                </button>
+            </div>
+        </form>
 
-    <div class="table-responsive" id="table-container">
-        <table class="table table-bordered table-striped align-middle">
-            <thead class="table-dark text-center">
-                <tr>
-                        <th>No</th>
-                        <th>Tanggal</th>
-                        <th>User</th>
-                        <th>NRP</th>
-                        <th>Pangkat</th>
-                        <th>Jabatan</th>
-                        <th>Polres</th>
-                        <th>Polsek</th>
-                        <th>Jumlah Beras</th>
-                        <th>Foto KTP</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $i = 0; @endphp
-                @forelse($dataPenjualan as $data)
-                @php $i++; @endphp
+        {{-- Tabel --}}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="data-table">
+                <thead class="bg-gray-50">
                     <tr>
-                            <td class="text-center">{{ $i+1 }}</td>
-                            <td>{{ \Carbon\Carbon::parse($data->created_at)->format('d-m-Y H:i') }}</td>
-                            <td>{{ $data->user->name ?? '-' }}</td>
-                            <td>{{ $data->user->nrp ?? '-' }}</td>
-                            <td>{{ $data->user->pangkat ?? '-' }}</td>
-                            <td>{{ $data->user->jabatan ?? '-' }}</td>
-                            <td>{{ $data->polres->nama ?? '-' }}</td>
-                            <td>{{ $data->polsek->nama ?? '-' }}</td>
-                            <td class="text-center">{{ $data->jumlah_beras ?? '-' }}</td>
-                            <td class="text-center">
-                                @if($data->foto_ktp)
-                                    <img src="{{ asset('storage/'.$data->foto_ktp) }}" alt="Foto KTP" class="img-thumbnail" width="100">
-                                @else
-                                    -
-                                @endif
-                            </td>
-                        </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" class="text-center">Tidak ada data</td>
+                        <th class="px-6 py-3 col-no">No</th>
+                        <th class="px-6 py-3 col-tanggal">Tanggal</th>
+                        <th class="px-6 py-3 col-nama">Nama</th>
+                        <th class="px-6 py-3 col-pangkat">Pangkat</th>
+                        <th class="px-6 py-3 col-jabatan">Jabatan</th>
+                        <th class="px-6 py-3 col-polres">Polres</th>
+                        <th class="px-6 py-3 col-polsek">Polsek</th>
+                        <th class="px-6 py-3 col-jumlah_beras">Jumlah Beras (Kg)</th>
+                        <th class="px-6 py-3 col-foto">Foto</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="table-body">
+                    @if(!count($selectedFilters))
+                        <tr>
+                            <td colspan="9" class="px-6 py-4 text-center text-gray-400 italic">Silahkan pilih kolom untuk menampilkan data</td>
+                        </tr>
+                    @else
+                        @forelse ($penjualan as $i => $p)
+                            <tr>
+                                <td class="px-6 py-4 col-no">{{ $penjualan->firstItem() + $i ?? $i+1 }}</td>
+                                <td class="px-6 py-4 col-tanggal">{{ \Carbon\Carbon::parse($p->created_at)->translatedFormat('d F Y') }}</td>
+                                <td class="px-6 py-4 col-nama">{{ $p->user->name ?? '-' }}</td>
+                                <td class="px-6 py-4 col-pangkat">{{ $p->user->userProfile->pangkat ?? '-' }}</td>
+                                <td class="px-6 py-4 col-jabatan">{{ $p->user->userProfile->jabatan ?? '-' }}</td>
+                                <td class="px-6 py-4 col-polres">{{ $p->polres->nama ?? '-' }}</td>
+                                <td class="px-6 py-4 col-polsek">{{ $p->polsek->nama ?? '-' }}</td>
+                                <td class="px-6 py-4 col-jumlah_beras">{{ $p->jumlah_beras }} Kg</td>
+                                <td class="px-6 py-4 col-foto">
+                                    @if ($p->foto_ktp)
+                                        <img src="{{ asset('uploads/ktp/' . $p->foto_ktp) }}" class="h-16 w-auto rounded border">
+                                    @else
+                                        <span class="text-gray-400 italic">Tidak ada</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="px-6 py-4 text-center text-gray-500">Data tidak ditemukan.</td>
+                            </tr>
+                        @endforelse
+                    @endif
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+{{-- Flatpickr --}}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 <script>
-document.getElementById('polres_id').addEventListener('change', function(){
-    let polresId = this.value;
-    let polsekSelect = document.getElementById('polsek_id');
-    let userSelect = document.getElementById('user_id');
+const dropdownButton = document.getElementById('dropdownButton');
+const dropdownMenu = document.getElementById('dropdownMenu');
+const filterItems = document.querySelectorAll('.filter-item');
+const filterForm = document.getElementById('filter-form');
+const dynamicInput = document.getElementById('dynamic-input');
+const tableBody = document.getElementById('table-body');
+const resetButton = document.getElementById('resetButton');
+const filtersHidden = document.getElementById('filters-hidden');
 
-    polsekSelect.innerHTML = '<option value="">-- Pilih Polsek --</option>';
-    userSelect.innerHTML = '<option value="">-- Pilih User --</option>';
+let selectedFilters = @json($selectedFilters);
 
-    if(polresId) {
-        fetch(`/superadmin/api/polsek/${polresId}`)
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(p => {
-                    polsekSelect.innerHTML += `<option value="${p.id}">${p.nama ?? p.name}</option>`;
-                });
-            })
-            .catch(err => console.error('Error fetch polsek:', err));
-    }
+dropdownButton.addEventListener('click', () => {
+    dropdownMenu.classList.toggle('hidden');
 });
 
-document.getElementById('polsek_id').addEventListener('change', function(){
-    let polsekId = this.value;
-    let userSelect = document.getElementById('user_id');
+function renderInputs() {
+    dynamicInput.innerHTML = '';
 
-    userSelect.innerHTML = '<option value="">-- Pilih User --</option>';
-
-    if(polsekId) {
-        fetch(`/superadmin/api/users/${polsekId}`)
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(u => {
-                    userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
-                });
-            })
-            .catch(err => console.error('Error fetch users:', err));
+    if(selectedFilters.length === 0){
+        filterForm.classList.add('hidden');
+        tableBody.innerHTML = `<tr>
+            <td colspan="9" class="px-6 py-4 text-center text-gray-400 italic">Silahkan pilih kolom untuk menampilkan data</td>
+        </tr>`;
+        filtersHidden.value = '';
+        return;
     }
+
+    filterForm.classList.remove('hidden');
+    filtersHidden.value = selectedFilters.join(',');
+
+    selectedFilters.forEach(value => {
+        let requestValue = new URLSearchParams(window.location.search).get(value) || '';
+        let inputHtml = '';
+
+        if(value === 'tanggal'){
+            inputHtml = `<div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                <input type="text" id="date-range" name="tanggal" value="" placeholder="Pilih rentang tanggal" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
+            </div>`;
+        } else if(value === 'jumlah_beras'){
+            inputHtml = `<div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Beras (Kg)</label>
+                <input type="number" name="jumlah_beras" value="${requestValue}" placeholder="Cari Jumlah Beras" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
+            </div>`;
+        } else {
+            inputHtml = `<div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${value.charAt(0).toUpperCase() + value.slice(1)}</label>
+                <input type="text" name="${value}" value="${requestValue}" placeholder="Cari ${value}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
+            </div>`;
+        }
+
+        dynamicInput.innerHTML += inputHtml;
+    });
+
+    if(selectedFilters.includes('tanggal')){
+        flatpickr("#date-range", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            allowInput: false,
+            defaultDate: null
+        });
+    }
+}
+
+function updateSymbols() {
+    filterItems.forEach(item => {
+        const val = item.dataset.value;
+        const symbol = item.querySelector('.filter-symbol');
+        symbol.textContent = selectedFilters.includes(val) ? '✔' : '✖';
+    });
+}
+
+filterItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const val = item.dataset.value;
+        if(selectedFilters.includes(val)){
+            selectedFilters = selectedFilters.filter(f => f !== val);
+        } else {
+            selectedFilters.push(val);
+        }
+        updateSymbols();
+        renderInputs();
+    });
 });
 
-document.getElementById('user_id').addEventListener('change', function(){
-    let userId = this.value;
-    let polresId = document.getElementById('polres_id').value;
-    let polsekId = document.getElementById('polsek_id').value;
-
-    if(userId) {
-        fetch(`/superadmin/api/penjualan/filter?polres_id=${polresId}&polsek_id=${polsekId}&user_id=${userId}`)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('table-container').innerHTML = data.html;
-            })
-            .catch(err => console.error('Error fetch penjualan:', err));
-    }
+resetButton.addEventListener('click', () => {
+    selectedFilters = [];
+    updateSymbols();
+    renderInputs();
 });
 
+// Inisialisasi awal
+updateSymbols();
+renderInputs();
 </script>
 @endsection
