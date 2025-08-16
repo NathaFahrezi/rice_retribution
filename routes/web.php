@@ -59,6 +59,12 @@ Route::middleware([ 'role:superadmin'])->prefix('superadmin')->name('superadmin.
     Route::delete('/hapus/akun/polsek/{id}', [AkunPolsekController::class, 'destroy'])->name('hapus.akun.polsek');
 
 
+    Route::get('/api/polsek-list', function(Request $request){
+    $polres_id = $request->query('polres_id');
+    $polseks = Polsek::where('polres_id', $polres_id)->get(['id','nama']);
+    return response()->json($polseks);
+    });
+
 
 
 

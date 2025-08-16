@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Polres;
 
 class SuperAdminController extends Controller
 {
     public function index()
     {
-        return view('superadmin.dashboard');
+        $polresList = Polres::all(); // ambil semua polres
+        return view('superadmin.dashboard', compact('polresList'));
     }
     
     public function resetPage()
@@ -22,7 +24,7 @@ class SuperAdminController extends Controller
     public function resetProcess(Request $request)
     {
         $request->validate([
-            'password' => 'required|string|min:8|confirmed', // password_confirmation harus ada juga
+            'password' => 'required|string|min:8|confirmed',
         ], [
             'password.required' => 'Password baru wajib diisi.',
             'password.min' => 'Password baru minimal 8 karakter.',
@@ -47,5 +49,4 @@ class SuperAdminController extends Controller
             ]);
         }
     }
-
 }

@@ -106,9 +106,10 @@
 
                         <li>
                             <a href="{{ route('superadmin.penjualan.index') }}"
-                                class="flex items-center p-3 rounded-lg hover:bg-gray-200 {{ request()->segment(2) == 'masyarakat' ? 'bg-lime-100 text-lime-700 font-semibold' : '' }}">
-                                <i class="fas fa-store mr-3"></i> Data Penjualan
+                            class="flex items-center p-3 rounded-lg hover:bg-gray-200 {{ request()->segment(2) == 'penjualan' ? 'bg-lime-100 text-lime-700 font-semibold' : '' }}">
+                            <i class="fas fa-store mr-3"></i> Data Penjualan
                             </a>
+
                         </li>
 
                         {{-- <li><a href=""

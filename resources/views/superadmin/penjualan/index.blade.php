@@ -31,7 +31,7 @@
             </button>
             <div id="dropdownMenu" class="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg hidden">
                 @php
-                    $allFilters = ['tanggal','nama','pangkat','jabatan','polres','polsek','jumlah_beras'];
+                    $allFilters = ['tanggal','nama','pangkat','jabatan','polres','polsek','jumlah'];
                     $selectedFilters = request('filters', []);
                 @endphp
                 @foreach($allFilters as $f)
@@ -78,35 +78,29 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="table-body">
-                    @if(!count($selectedFilters))
+                    @forelse ($penjualan as $i => $p)
                         <tr>
-                            <td colspan="9" class="px-6 py-4 text-center text-gray-400 italic">Silahkan pilih kolom untuk menampilkan data</td>
+                            <td class="px-6 py-4 col-no">{{ $penjualan->firstItem() + $i ?? $i+1 }}</td>
+                            <td class="px-6 py-4 col-tanggal">{{ \Carbon\Carbon::parse($p->created_at)->format('d-m-Y H:i:s') }}</td>
+                            <td class="px-6 py-4 col-nama">{{ $p->user->name ?? '-' }}</td>
+                            <td class="px-6 py-4 col-pangkat">{{ $p->user->userProfile->pangkat ?? '-' }}</td>
+                            <td class="px-6 py-4 col-jabatan">{{ $p->user->userProfile->jabatan ?? '-' }}</td>
+                            <td class="px-6 py-4 col-polres">{{ $p->polres->nama ?? '-' }}</td>
+                            <td class="px-6 py-4 col-polsek">{{ $p->polsek->nama ?? '-' }}</td>
+                            <td class="px-6 py-4 col-jumlah_beras">{{ $p->jumlah_beras }} Kg</td>
+                            <td class="px-6 py-4 col-foto">
+                                @if ($p->foto_ktp)
+                                    <img src="{{ asset('uploads/ktp/' . $p->foto_ktp) }}" class="h-16 w-auto rounded border">
+                                @else
+                                    <span class="text-gray-400 italic">Tidak ada</span>
+                                @endif
+                            </td>
                         </tr>
-                    @else
-                        @forelse ($penjualan as $i => $p)
-                            <tr>
-                                <td class="px-6 py-4 col-no">{{ $penjualan->firstItem() + $i ?? $i+1 }}</td>
-                                <td class="px-6 py-4 col-tanggal">{{ \Carbon\Carbon::parse($p->created_at)->translatedFormat('d F Y') }}</td>
-                                <td class="px-6 py-4 col-nama">{{ $p->user->name ?? '-' }}</td>
-                                <td class="px-6 py-4 col-pangkat">{{ $p->user->userProfile->pangkat ?? '-' }}</td>
-                                <td class="px-6 py-4 col-jabatan">{{ $p->user->userProfile->jabatan ?? '-' }}</td>
-                                <td class="px-6 py-4 col-polres">{{ $p->polres->nama ?? '-' }}</td>
-                                <td class="px-6 py-4 col-polsek">{{ $p->polsek->nama ?? '-' }}</td>
-                                <td class="px-6 py-4 col-jumlah_beras">{{ $p->jumlah_beras }} Kg</td>
-                                <td class="px-6 py-4 col-foto">
-                                    @if ($p->foto_ktp)
-                                        <img src="{{ asset('uploads/ktp/' . $p->foto_ktp) }}" class="h-16 w-auto rounded border">
-                                    @else
-                                        <span class="text-gray-400 italic">Tidak ada</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="9" class="px-6 py-4 text-center text-gray-500">Data tidak ditemukan.</td>
-                            </tr>
-                        @endforelse
-                    @endif
+                    @empty
+                        <tr>
+                            <td colspan="9" class="px-6 py-4 text-center text-gray-500">Data tidak ditemukan.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -123,7 +117,6 @@ const dropdownMenu = document.getElementById('dropdownMenu');
 const filterItems = document.querySelectorAll('.filter-item');
 const filterForm = document.getElementById('filter-form');
 const dynamicInput = document.getElementById('dynamic-input');
-const tableBody = document.getElementById('table-body');
 const resetButton = document.getElementById('resetButton');
 const filtersHidden = document.getElementById('filters-hidden');
 
@@ -138,9 +131,6 @@ function renderInputs() {
 
     if(selectedFilters.length === 0){
         filterForm.classList.add('hidden');
-        tableBody.innerHTML = `<tr>
-            <td colspan="9" class="px-6 py-4 text-center text-gray-400 italic">Silahkan pilih kolom untuk menampilkan data</td>
-        </tr>`;
         filtersHidden.value = '';
         return;
     }
@@ -155,12 +145,12 @@ function renderInputs() {
         if(value === 'tanggal'){
             inputHtml = `<div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-                <input type="text" id="date-range" name="tanggal" value="" placeholder="Pilih rentang tanggal" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
+                <input type="text" id="date-range" name="tanggal" value="${requestValue}" placeholder="Pilih rentang tanggal" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
             </div>`;
-        } else if(value === 'jumlah_beras'){
+        } else if(value === 'jumlah'){
             inputHtml = `<div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Beras (Kg)</label>
-                <input type="number" name="jumlah_beras" value="${requestValue}" placeholder="Cari Jumlah Beras" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
+                <input type="number" name="jumlah" value="${requestValue}" placeholder="Cari Jumlah Beras" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-green-500 focus:ring-green-500">
             </div>`;
         } else {
             inputHtml = `<div>
@@ -173,11 +163,17 @@ function renderInputs() {
     });
 
     if(selectedFilters.includes('tanggal')){
+        let defaultDates = [];
+        const urlDate = new URLSearchParams(window.location.search).get('tanggal');
+        if(urlDate){
+            defaultDates = urlDate.split(' to ');
+        }
+
         flatpickr("#date-range", {
             mode: "range",
             dateFormat: "Y-m-d",
             allowInput: false,
-            defaultDate: null
+            defaultDate: defaultDates.length ? defaultDates : null
         });
     }
 }

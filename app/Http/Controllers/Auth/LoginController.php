@@ -212,7 +212,7 @@ class LoginController extends Controller
                 'text' => 'Login Berhasil!'
             ]);
         }elseif ($role === 'user') {
-            return redirect()->route('user.dashboard')->with('alert', [
+            return redirect()->route('user.masyarakat')->with('alert', [
                 'type' => 'success',
                 'title' => 'Berhasil',
                 'text' => 'Login Berhasil!'
